@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Search from "./components/Search";
 import Spinner from "./components/Spinner";
 import hero from "./assets/hero.png";
 import { type Movie } from "./types/Movie";
+import { useDebounce } from "react-use";
+
 import MovieCard from "./components/MovieCard";
 
 const API_BASE_URL = "https://api.themoviedb.org/3";
@@ -20,14 +22,26 @@ const App = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
-  const fetchMovies = async () => {
+  useDebounce(
+    () => {
+      setDebouncedSearchTerm(searchTerm);
+    },
+    500,
+    [searchTerm]
+  );
+
+  const fetchMovies = async (query = "") => {
     setLoading(true);
     setErrorMessage(null);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const endpoint = `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+      // await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const endpoint = query
+        ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
+        : `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
       const response = await fetch(endpoint, API_OPTIONS);
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -50,8 +64,8 @@ const App = () => {
   };
 
   useEffect(() => {
-    fetchMovies();
-  }, []);
+    fetchMovies(debouncedSearchTerm);
+  }, [debouncedSearchTerm]);
 
   return (
     <main>
